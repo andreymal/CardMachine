@@ -124,7 +124,8 @@ def build_cards(module, data):
     card_set_path = os.path.join(data['game'], data['card_set'])
 
     # Create workspace for card images
-    workspace_path = CleanDirectory(path=data['game'], mkdir="workspace", rmstring="*.*")
+    workspace_path = CleanDirectory(path=card_set_path, mkdir="workspace", rmstring="*.*")
+    module.workspace_path = workspace_path
 
     # Create image directories
     bleed_path = CleanDirectory(path=card_set_path, mkdir="bleed-images", rmstring="*.*")
