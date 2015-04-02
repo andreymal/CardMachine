@@ -106,6 +106,7 @@ def build_cards(module, data):
 
     # Create output directory
     output_folder = CleanDirectory(path=data['game'], mkdir=data['card_set'], rmstring="*.pdf")
+    module.CardSetPath = output_folder
 
     cards_per_page = data.get('pdf', {}).get('cards_per_page', module.TOTAL_CARDS)
     page_width = data.get('pdf', {}).get('page_width', module.PAGE_WIDTH)

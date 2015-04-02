@@ -31,6 +31,7 @@ ResourcePath = DIRECTORY+"/resources/"
 BleedsPath = DIRECTORY+"/bleed-images/"
 CropPath = DIRECTORY+"/cropped-images/"
 VassalPath = DIRECTORY+"/vassal-images/"
+CardSetPath = DIRECTORY+"/"
 
 VassalTemplatesPath = DIRECTORY+"/vassal templates/"
 VassalWorkspacePath = DIRECTORY+"/vassal workspace/"
@@ -109,6 +110,8 @@ Frames = {
     "Derpy": PIL_Helper.LoadImage(CardPath+"/BLEED_Card - Derpy Hooves.png"),
     "TestSubject": PIL_Helper.LoadImage(CardPath+"/BLEED_Card - OverlayTest Subject Cheerilee.png")
     }
+
+CustomFrames = {}
 
 Symbols = {
     "male": PIL_Helper.LoadImage(ResourcePath+"/Symbol-male.png"),
@@ -213,7 +216,23 @@ backs = {"START": PIL_Helper.LoadImage(ResourcePath + "Back-Start.png"),
          "Warning": PIL_Helper.LoadImage(CardPath + "Card - Contact.png")
         }
 
+custom_backs = {}
+
 CopyrightString = u"{}; TSSSF by Horrible People Games. Art by {}."
+
+def GetCustomImage(custom_cache, custom_item):
+    custom_item = tuple(custom_item[:2])
+    if not custom_item in custom_cache:
+        if custom_item[0] == "card_art":
+            path = os.path.join(CardPath, custom_item[1])
+        elif custom_item[0] == "resource":
+            path = os.path.join(ResourcePath, custom_item[1])
+        elif custom_item[0] == "local":
+            path = os.path.join(CardSetPath, custom_item[1])
+        else:
+            raise ValueError("Unknown path type: %r" % custom_item[0])
+        custom_cache[custom_item] = PIL_Helper.LoadImage(path)
+    return custom_cache[custom_item]
 
 def FixFileName(tagin):
     FileName = tagin.replace("\n", "")
@@ -284,10 +303,14 @@ def BuildCard(tags):
 
 def BuildBack(tags):
     #print("Back type: " + tags['type'])
+    if tags.get('back'):
+        return GetCustomImage(custom_backs, tags['back'])
     return backs[tags['type']]
   
 def PickCardFunc(tags):
-    if tags['type'] in ("START", "Pony"):
+    if tags['type'] == "START":
+        return MakeStartCard(tags)
+    elif tags['type'] == "Pony":
         return MakePonyCard(tags)
     elif tags['type'] == "Ship":
         return MakeShipCard(tags)
@@ -296,15 +319,19 @@ def PickCardFunc(tags):
     elif tags['type'] == "BLANK":
         return MakeBlankCard()
     elif tags['type'] in ("Warning", "Rules1", "Rules3", "Rules5"):
-        return MakeSpecialCard(tags['type'])
+        return MakeSpecialCard(tags['type'], custom_frame=tags.get('frame'))
     elif tags['type'] == "TestSubject":
         return MakePonyCard(tags)
     elif tags['type'] == "Card":
-        return MakeSpecialCard(tags['picture'])
+        return MakeSpecialCard(tags['picture'], custom_frame=tags.get('frame'))
     else:
         raise Exception("No card of type {0}".format(tags['type']))
 
-def GetFrame(card_type):
+def GetFrame(card_type, custom_frame=None):
+    if card_type not in Frames and not custom_frame:
+        custom_frame = ("card_art", card_type + ".png")
+    if custom_frame:
+        return GetCustomImage(CustomFrames, custom_frame).copy()
     return Frames[card_type].copy()
 
 def AddCardArt(image, filename, anchor):
@@ -472,7 +499,7 @@ def MakeBlankCard():
     return image
 
 def MakeStartCard(tags):
-    image = GetFrame(tags['type'])
+    image = GetFrame(tags['type'], tags.get('frame'))
     AddCardArt(image, tags['picture'], Anchors["PonyArt"])
     TitleText(image, tags['title'], ColorDict["START"])
     AddSymbols(image, tags['symbols'])
@@ -485,7 +512,7 @@ def MakeStartCard(tags):
     return image
 
 def MakePonyCard(tags):
-    image = GetFrame(tags['type'])
+    image = GetFrame(tags['type'], tags.get('frame'))
     AddCardArt(image, tags['picture'], Anchors["PonyArt"])
     TitleText(image, tags['title'], ColorDict["Pony"])
     AddSymbols(image, tags['symbols'])
@@ -498,7 +525,7 @@ def MakePonyCard(tags):
     return image
 
 def MakeShipCard(tags):
-    image = GetFrame(tags['type'])
+    image = GetFrame(tags['type'], tags.get('frame'))
     AddCardArt(image, tags['picture'], Anchors["ShipArt"])
     TitleText(image, tags['title'], ColorDict["Ship"])
     AddSymbols(image, tags['symbols'], "Ship")
@@ -512,7 +539,7 @@ def MakeShipCard(tags):
     return image
 
 def MakeGoalCard(tags):
-    image = GetFrame(tags['type'])
+    image = GetFrame(tags['type'], tags.get('frame'))
     AddCardArt(image, tags['picture'], Anchors["GoalArt"])
     TitleText(image, tags['title'], ColorDict["Goal"])
     AddSymbols(image, tags['symbols'], card_type="Goal")
@@ -523,9 +550,9 @@ def MakeGoalCard(tags):
         AddExpansion(image, tags['expansion'])
     return image
 
-def MakeSpecialCard(picture):
+def MakeSpecialCard(picture, custom_frame=None):
     print repr(picture)
-    return GetFrame(picture)
+    return GetFrame(picture, custom_frame)
 
 def InitVassalModule():
     pass
