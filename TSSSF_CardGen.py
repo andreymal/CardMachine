@@ -5,6 +5,17 @@ TYPE, PICTURE, SYMBOLS, TITLE, KEYWORDS, BODY, FLAVOR, EXPANSION, CLIENT = range
 DIRECTORY = "TSSSF"
 ARTIST = "Pixel Prism"
 
+def convert_line(old_tags):
+    taglist = ('type', 'picture', 'symbols', 'title', 'keywords', 'body', 'flavor', 'expansion', 'client')
+    new_tags = {}
+    for index, tag in enumerate(taglist):
+        if index >= len(old_tags):
+            break
+        value = old_tags[index]
+        if index == 2:  # SYMBOLS
+            value = value.split('!')
+        new_tags[tag] = value
+    return new_tags
 
 LegacySymbolMode = False
 PAGE_WIDTH = 3
@@ -214,7 +225,6 @@ def FixFileName(tagin):
     return FileName
 
 def FixUnicode(text):
-    text=text.replace(r'\n','\n')
     if LegacySymbolMode:
         text=text.replace(';', u"\u2642")
         text=text.replace('*', u"\u2640")
@@ -251,24 +261,19 @@ def SaveCard(filepath, image_to_save):
         while os.path.exists(filepath):
             i += 1
             filepath = "{}_{:>03}{}".format(basepath, i, extension)
-    image_to_save.save(filepath)
+    image_to_save.save(filepath, dpi=(300, 300))
 
-def BuildCard(linein):
-    tags = linein.strip('\n').strip('\r').replace(r'\n', '\n').split('`')
+def BuildCard(tags):
     try:
-        im = PickCardFunc(tags[TYPE], tags)
-        if len(tags) >= 2:
-            if len(tags) == 2:
-                filename = FixFileName(tags[0]+"_"+tags[1])
-            else:
-                filename = FixFileName(tags[0]+"_"+tags[3])
+        im = PickCardFunc(tags)
+        im_crop=im.crop(croprect)
+        if tags['type'] not in ('BLANK',):
+            filename = FixFileName(tags['type'] + "_" + (tags.get('title') or tags.get('picture')))
             SaveCard(os.path.join(BleedsPath, filename), im)
-            im_crop=im.crop(croprect)
+
             SaveCard(os.path.join(CropPath, filename), im_crop)
             im_vassal=PIL_Helper.ResizeImage(im_crop, VASSAL_SCALE)
             SaveCard(os.path.join(VassalPath, filename), im_vassal)
-        else:
-            im_crop=im.crop(croprect)
         #MakeVassalCard(im_cropped)
     except Exception as e:
         print "Warning, Bad Card: {0}".format(tags)
@@ -277,36 +282,27 @@ def BuildCard(linein):
     #im.show()  # TEST
     return im_crop
 
-def BuildBack(linein):
-    tags = linein.strip('\n').replace(r'\n', '\n').split('`')
-    #print("Back type: " + tags[TYPE])
-    return backs[tags[TYPE]]
+def BuildBack(tags):
+    #print("Back type: " + tags['type'])
+    return backs[tags['type']]
   
-def PickCardFunc(card_type, tags):
-    if tags[TYPE] == "START":
+def PickCardFunc(tags):
+    if tags['type'] in ("START", "Pony"):
         return MakePonyCard(tags)
-    elif tags[TYPE] == "Pony":
-        return MakePonyCard(tags)
-    elif tags[TYPE] == "Ship":
+    elif tags['type'] == "Ship":
         return MakeShipCard(tags)
-    elif tags[TYPE] == "Goal":
+    elif tags['type'] == "Goal":
         return MakeGoalCard(tags)
-    elif tags[TYPE] == "BLANK":
+    elif tags['type'] == "BLANK":
         return MakeBlankCard()
-    elif tags[TYPE] == "Warning":
-        return MakeSpecialCard("Warning")
-    elif tags[TYPE] == "Rules1":
-        return MakeSpecialCard("Rules1")
-    elif tags[TYPE] == "Rules3":
-        return MakeSpecialCard("Rules3")
-    elif tags[TYPE] == "Rules5":
-        return MakeSpecialCard("Rules5")
-    elif tags[TYPE] == "TestSubject":
+    elif tags['type'] in ("Warning", "Rules1", "Rules3", "Rules5"):
+        return MakeSpecialCard(tags['type'])
+    elif tags['type'] == "TestSubject":
         return MakePonyCard(tags)
-    elif tags[TYPE] == "Card":
-        return MakeSpecialCard(tags[PICTURE])
+    elif tags['type'] == "Card":
+        return MakeSpecialCard(tags['picture'])
     else:
-        raise Exception("No card of type {0}".format(tags[TYPE]))
+        raise Exception("No card of type {0}".format(tags['type']))
 
 def GetFrame(card_type):
     return Frames[card_type].copy()
@@ -445,14 +441,13 @@ def AddExpansion(image, expansion):
         image.paste(expansion_symbol, Anchors["Expansion"], expansion_symbol)
 
 def CopyrightText(tags, image, color):
-    card_set = CardSet.replace('_',' ')
-    #print tags[CLIENT], repr(tags)
-    if len(tags)-1 >= CLIENT:
-        card_set += " " + unicode(tags[CLIENT])
-    text = CopyrightString.format(
-        card_set,
-        ARTIST
-        )
+    text = tags.get('copyright')
+    if not text:
+        card_set = CardSet.replace('_',' ')
+        #print tags[CLIENT], repr(tags)
+        if 'client' in tags:
+            card_set += u" " + tags['client']
+        text = CopyrightString.format(card_set, tags.get('artist', ARTIST))
     PIL_Helper.AddText(
         image = image,
         text = text,
@@ -477,55 +472,55 @@ def MakeBlankCard():
     return image
 
 def MakeStartCard(tags):
-    image = GetFrame(tags[TYPE])
-    AddCardArt(image, tags[PICTURE], Anchors["PonyArt"])
-    TitleText(image, tags[TITLE], ColorDict["START"])
-    AddSymbols(image, tags[SYMBOLS].split('!'))
-    BarText(image, tags[KEYWORDS], ColorDict["START bar text"])
-    text_size = FlavorText(image, tags[FLAVOR], ColorDict["START flavor"])
-    BodyText(image, tags[BODY], ColorDict["START"], text_size)
+    image = GetFrame(tags['type'])
+    AddCardArt(image, tags['picture'], Anchors["PonyArt"])
+    TitleText(image, tags['title'], ColorDict["START"])
+    AddSymbols(image, tags['symbols'])
+    BarText(image, tags['keywords'], ColorDict["START bar text"])
+    text_size = FlavorText(image, tags['flavor'], ColorDict["START flavor"])
+    BodyText(image, tags['body'], ColorDict["START"], text_size)
     CopyrightText(tags, image, ColorDict["Copyright"])
-    if len(tags) > EXPANSION:
-        AddExpansion(image, tags[EXPANSION])
+    if tags.get('expansion'):
+        AddExpansion(image, tags['expansion'])
     return image
 
 def MakePonyCard(tags):
-    image = GetFrame(tags[TYPE])
-    AddCardArt(image, tags[PICTURE], Anchors["PonyArt"])
-    TitleText(image, tags[TITLE], ColorDict["Pony"])
-    AddSymbols(image, tags[SYMBOLS].split('!'))
-    BarText(image, tags[KEYWORDS], ColorDict["Pony bar text"])
-    text_size = FlavorText(image, tags[FLAVOR], ColorDict["Pony flavor"])
-    BodyText(image, tags[BODY], ColorDict["Pony"], text_size)
+    image = GetFrame(tags['type'])
+    AddCardArt(image, tags['picture'], Anchors["PonyArt"])
+    TitleText(image, tags['title'], ColorDict["Pony"])
+    AddSymbols(image, tags['symbols'])
+    BarText(image, tags['keywords'], ColorDict["Pony bar text"])
+    text_size = FlavorText(image, tags['flavor'], ColorDict["Pony flavor"])
+    BodyText(image, tags['body'], ColorDict["Pony"], text_size)
     CopyrightText(tags, image, ColorDict["Copyright"])
-    if len(tags) > EXPANSION:
-        AddExpansion(image, tags[EXPANSION])
+    if tags.get('expansion'):
+        AddExpansion(image, tags['expansion'])
     return image
 
 def MakeShipCard(tags):
-    image = GetFrame(tags[TYPE])
-    AddCardArt(image, tags[PICTURE], Anchors["ShipArt"])
-    TitleText(image, tags[TITLE], ColorDict["Ship"])
-    AddSymbols(image, tags[SYMBOLS].split('!'), "Ship")
+    image = GetFrame(tags['type'])
+    AddCardArt(image, tags['picture'], Anchors["ShipArt"])
+    TitleText(image, tags['title'], ColorDict["Ship"])
+    AddSymbols(image, tags['symbols'], "Ship")
     #AddSymbols(image, "Ship")
-    BarText(image, tags[KEYWORDS], ColorDict["Ship bar text"])
-    text_size = FlavorText(image, tags[FLAVOR], ColorDict["Ship flavor"])
-    BodyText(image, tags[BODY], ColorDict["Ship"], text_size)
+    BarText(image, tags['keywords'], ColorDict["Ship bar text"])
+    text_size = FlavorText(image, tags['flavor'], ColorDict["Ship flavor"])
+    BodyText(image, tags['body'], ColorDict["Ship"], text_size)
     CopyrightText(tags, image, ColorDict["Copyright"])
-    if len(tags) > EXPANSION:
-        AddExpansion(image, tags[EXPANSION])
+    if tags.get('expansion'):
+        AddExpansion(image, tags['expansion'])
     return image
 
 def MakeGoalCard(tags):
-    image = GetFrame(tags[TYPE])
-    AddCardArt(image, tags[PICTURE], Anchors["GoalArt"])
-    TitleText(image, tags[TITLE], ColorDict["Goal"])
-    AddSymbols(image, tags[SYMBOLS].split('!'), card_type="Goal")
-    text_size = FlavorText(image, tags[FLAVOR], ColorDict["Goal flavor"])
-    BodyText(image, tags[BODY], ColorDict["Goal"], text_size)
+    image = GetFrame(tags['type'])
+    AddCardArt(image, tags['picture'], Anchors["GoalArt"])
+    TitleText(image, tags['title'], ColorDict["Goal"])
+    AddSymbols(image, tags['symbols'], card_type="Goal")
+    text_size = FlavorText(image, tags['flavor'], ColorDict["Goal flavor"])
+    BodyText(image, tags['body'], ColorDict["Goal"], text_size)
     CopyrightText(tags, image, ColorDict["Copyright"])
-    if len(tags) > EXPANSION:
-        AddExpansion(image, tags[EXPANSION])
+    if tags.get('expansion'):
+        AddExpansion(image, tags['expansion'])
     return image
 
 def MakeSpecialCard(picture):

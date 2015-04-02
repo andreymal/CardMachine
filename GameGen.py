@@ -1,12 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 '''
-Master Game Gen 
+Master Game Gen
 1.0b
 '''
-import os, glob, json
-import PIL_Helper
-from OS_Helper import *
+import os, json
+from OS_Helper import CleanDirectory, BuildPage, BuildBack
 import sys
 
 #TSSSF Migration TODO:
@@ -14,25 +13,63 @@ import sys
 #individual artist naming
 #.pon files have symbols like {ALICORN} and so on.
 
-def main(folder=".", filepath="deck.cards"):
-    if isinstance(folder, str):
-        folder = folder.decode('utf-8', 'replace')
-    if isinstance(filepath, str):
-        filepath = filepath.decode('utf-8', 'replace')
 
-    CardFile = open(os.path.join(folder, filepath), 'rb')
-    card_set = os.path.dirname(filepath)
+def load_cards_file(path, save_tsssf_converted=True):
+    path = os.path.abspath(path)
+    card_set = os.path.split(os.path.dirname(path))[1]
+    game_folder = os.path.dirname(os.path.dirname(path))
+    game = os.path.split(game_folder)[1]
 
-    # Read first line of file to determine module
-    first_line = CardFile.readline().decode('utf-8-sig', 'replace').strip()
-    try:
-        module = __import__(first_line)
-    except ValueError:
-        print "Failed to load module: " + str(ValueError)
-        return
-    module.CardSet = card_set
+    with open(path, 'rb') as fp:
+        if path.endswith('.json'):
+            # new json format
+            data = json.loads(fp.read().decode('utf-8-sig', 'replace'))
+            module = __import__(data['module'])
+        else:
+            # old pon format
+            first_line = fp.readline().decode('utf-8-sig', 'replace').strip()
+            module = __import__(first_line)
+            data = {'module': first_line, 'cards': []}
 
+            # convert to new format
+            for line in fp:
+                line = line.decode('utf-8', 'replace').strip()
+                if not line or line[0] in ('#', ';', '/'):
+                    continue
+                line = line.replace(r'\r', '').replace(r'\n', '\n')
+                data['cards'].append(module.convert_line(line.split('`')))
+                # data['cards'].append(line.split('`'))
+
+    data['game'] = game
+    data['card_set'] = card_set
+
+    if not path.endswith('.json') and save_tsssf_converted and data['module'] == 'TSSSF_CardGen':
+        print 'Converting to new format!'
+        with open(os.path.splitext(path)[0] + '.json', 'wb') as fp:
+            fp.write(fancy_json_cards(data).encode('utf-8'))
+
+    return module, data
+
+
+def fancy_json_cards(data):
+    from collections import OrderedDict
+
+    taglist = ('type', 'picture', 'symbols', 'title', 'keywords', 'body', 'flavor', 'expansion', 'client')
+    cards = []
+    for tags in data['cards']:
+        dtags = []
+        for tag in taglist:
+            if tag in tags:
+                dtags.append((tag, tags[tag]))
+        cards.append(OrderedDict(dtags))
+
+    odata = [('module', data['module']), ('cards', cards)]
+    odata = OrderedDict(odata)
+    return json.dumps(odata, sort_keys=False, indent=1, ensure_ascii=False)
+
+def load_translation_files(folder, card_set, module):
     # Custom translations: using translation.json file from card set folder and from game folder
+    count = 0
     for tpath in (os.path.join(folder, 'translation.json'), os.path.join(folder, card_set, 'translation.json')):
         if not os.path.isfile(tpath):
             continue
@@ -40,54 +77,55 @@ def main(folder=".", filepath="deck.cards"):
         with open(tpath, 'rb') as fp:
             translation = json.loads(fp.read().decode('utf-8-sig', 'replace'))
 
+        count += 1
+
         if 'RulesDict' in translation:
             module.RulesDict.update(translation['RulesDict'])
+        if 'CopyrightString' in translation:
+            module.CopyrightString = translation['CopyrightString']
+        if 'ArtArtist' in translation:
+            module.ARTIST = translation['ArtArtist']
 
-        if first_line == "TSSSF_CardGen":
-            if 'CopyrightString' in translation:
-                module.CopyrightString = translation['CopyrightString']
-            if 'ArtArtist' in translation:
-                module.ARTIST = translation['ArtArtist']
+    return count
+
+
+def build_cards(module, data):
+    module.CardSet = data['card_set']
+    card_set_path = os.path.join(data['game'], data['card_set'])
 
     # Create workspace for card images
-    workspace_path = CleanDirectory(path=folder, mkdir="workspace", rmstring="*.*")
+    workspace_path = CleanDirectory(path=data['game'], mkdir="workspace", rmstring="*.*")
 
     # Create image directories
-    bleed_path = CleanDirectory(path=folder+"/"+card_set, mkdir="bleed-images",rmstring="*.*")
+    bleed_path = CleanDirectory(path=card_set_path, mkdir="bleed-images", rmstring="*.*")
     module.BleedsPath = bleed_path
-    cropped_path = CleanDirectory(path=folder+"/"+card_set, mkdir="cropped-images",rmstring="*.*")
+    cropped_path = CleanDirectory(path=card_set_path, mkdir="cropped-images", rmstring="*.*")
     module.CropPath = cropped_path
-    vassal_path = CleanDirectory(path=folder+"/"+card_set, mkdir="vassal-images",rmstring="*.*")
+    vassal_path = CleanDirectory(path=card_set_path, mkdir="vassal-images", rmstring="*.*")
     module.VassalPath = vassal_path
 
     # Create output directory
-    output_folder = CleanDirectory(path=folder, mkdir=card_set,rmstring="*.pdf")
+    output_folder = CleanDirectory(path=data['game'], mkdir=data['card_set'], rmstring="*.pdf")
 
-    # Load Card File and strip out comments
-    cardlines = [line.decode('utf-8', 'replace') for line in CardFile if not line[0] in ('#', ';', '/')]
-    CardFile.close()
-
-##    # Make a list of lists of cards, each one page in scale
-##    cardpages = []
-##    cardlines += ["BLANK" for i in range(1, module.TOTAL_CARDS)]
-##    cardlines.reverse()
-##    while len(cardlines) > module.TOTAL_CARDS:
-##        cardpages.append([cardlines.pop() for i in range(0,module.TOTAL_CARDS)])
+    cards_per_page = data.get('pdf', {}).get('cards_per_page', module.TOTAL_CARDS)
+    page_width = data.get('pdf', {}).get('page_width', module.PAGE_WIDTH)
+    page_height = data.get('pdf', {}).get('page_height', module.PAGE_HEIGHT)
 
     # Make pages
     card_list = []
     back_list = []
     page_num = 0
-    for line in cardlines:
+    for line in data['cards']:
+        # line = '`'.join(line)
         card_list.append(module.BuildCard(line))
         back_list.append(module.BuildBack(line))
         # If the card_list is big enough to make a page
         # do that now, and set the card list to empty again
-        if len(card_list) >= module.TOTAL_CARDS:
+        if len(card_list) >= cards_per_page:
             page_num += 1
             print "Building Page {}...".format(page_num)
-            BuildPage(card_list, page_num, module.PAGE_WIDTH, module.PAGE_HEIGHT, workspace_path)
-            BuildBack(back_list, page_num, module.PAGE_WIDTH, module.PAGE_HEIGHT, workspace_path)
+            BuildPage(card_list, page_num, page_width, page_height, workspace_path)
+            BuildBack(back_list, page_num, page_width, page_height, workspace_path)
             card_list = []
             back_list = []
 
@@ -95,17 +133,21 @@ def main(folder=".", filepath="deck.cards"):
     # card slots with blanks and gen the last page
     if len(card_list) > 0:
         # Fill in the missing slots with blanks
-        while len(card_list) < module.TOTAL_CARDS:
+        while len(card_list) < cards_per_page:
             card_list.append(module.BuildCard("BLANK"))
             back_list.append(module.BuildCard("BLANK"))
         page_num += 1
         print "Building Page {}...".format(page_num)
-        BuildPage(card_list, page_num, module.PAGE_WIDTH, module.PAGE_HEIGHT, workspace_path)
-        BuildBack(back_list, page_num, module.PAGE_WIDTH, module.PAGE_HEIGHT, workspace_path)
+        BuildPage(card_list, page_num, page_width, page_height, workspace_path)
+        BuildBack(back_list, page_num, page_width, page_height, workspace_path)
 
     #Build Vassal
     module.CompileVassalModule()
 
+    return workspace_path, output_folder
+
+
+def generate_pdf(workspace_path, output_folder, card_set):
     if sys.platform == 'win32':
         print "\nCreating PDF (Windows)..."
         if os.path.isfile(r'imagemagick\convert.exe'):
@@ -140,6 +182,18 @@ def main(folder=".", filepath="deck.cards"):
             card_set
             ).encode('utf-8'))
         print "Done!"
+
+
+def main(folder=".", filepath="deck.cards"):
+    if isinstance(folder, str):
+        folder = folder.decode('utf-8', 'replace')
+    if isinstance(filepath, str):
+        filepath = filepath.decode('utf-8', 'replace')
+
+    module, data = load_cards_file(os.path.join(folder, filepath))
+    load_translation_files(data['game'], data['card_set'], module)
+    workspace_path, output_folder = build_cards(module, data)
+    generate_pdf(workspace_path, output_folder, data['card_set'])
 
 if __name__ == '__main__':
     #main('TSSSF', '1.1.0 Patch/cards.pon')
