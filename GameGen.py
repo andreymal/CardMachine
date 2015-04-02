@@ -43,12 +43,42 @@ def load_cards_file(path, save_tsssf_converted=True):
     data['game'] = game
     data['card_set'] = card_set
 
+    # prepare cards
+    data['cards'] = unpack_card_group(data['cards'])
+    data['cards'] = select_focused_cards(data['cards'])
+
     if not path.endswith('.json') and save_tsssf_converted and data['module'] == 'TSSSF_CardGen':
         print 'Converting to new format!'
         with open(os.path.splitext(path)[0] + '.json', 'wb') as fp:
             fp.write(fancy_json_cards(data).encode('utf-8'))
 
     return module, data
+
+
+def unpack_card_group(cards, group=None):
+    if not group:
+        group = {}
+    unpacked_cards = []
+    for card in cards:
+        if 'group' in card and 'cards' in card:
+            unpacked_cards.extend(unpack_card_group(card['cards'], card['group']))
+        else:
+            new_card = dict(group)
+            new_card.update(card)
+            unpacked_cards.append(new_card)
+    return unpacked_cards
+
+
+def select_focused_cards(cards):
+    focused = []
+    for card in cards:
+        if card.get('focus') and not card.get('disable'):
+            focused.append(card)
+    if not focused:
+        for card in cards:
+            if not card.get('disable'):
+                focused.append(card)
+    return focused
 
 
 def fancy_json_cards(data):
@@ -135,8 +165,8 @@ def build_cards(module, data):
     if len(card_list) > 0:
         # Fill in the missing slots with blanks
         while len(card_list) < cards_per_page:
-            card_list.append(module.BuildCard("BLANK"))
-            back_list.append(module.BuildCard("BLANK"))
+            card_list.append(module.BuildCard({"type": "BLANK"}))
+            back_list.append(module.BuildCard({"type": "BLANK"}))
         page_num += 1
         print "Building Page {}...".format(page_num)
         BuildPage(card_list, page_num, page_width, page_height, workspace_path)

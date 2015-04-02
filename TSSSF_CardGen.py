@@ -279,7 +279,7 @@ def SaveCard(filepath, image_to_save):
         i = 0
         while os.path.exists(filepath):
             i += 1
-            filepath = "{}_{:>03}{}".format(basepath, i, extension)
+            filepath = u"{}_{:>03}{}".format(basepath, i, extension)
     image_to_save.save(filepath, dpi=(300, 300))
 
 def BuildCard(tags):
