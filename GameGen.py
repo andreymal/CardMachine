@@ -144,7 +144,7 @@ def build_cards(module, data):
     pdf = data.get('pdf', {})
     cards_per_page = pdf.get('cards_per_page', module.TOTAL_CARDS)
 
-    page_params = {}
+    page_params = {'extension': pdf.get('pages_extension', 'png')}
     if 'dpi' in pdf:
         page_params['dpi'] = pdf['dpi']
     if 'cut_line_width' in pdf:
@@ -163,10 +163,12 @@ def build_cards(module, data):
     card_list = []
     back_list = []
     page_num = 0
-    for line in data['cards']:
-        # line = '`'.join(line)
-        card_list.append(module.BuildCard(line))
-        back_list.append(module.BuildBack(line))
+    count = len(data['cards'])
+    for index, card in enumerate(data['cards'], 1):
+        label = card.get('title') or card.get('picture') or card.get('type')
+        print '[{}/{}] {}'.format(index, count, label.replace('\n', ' ').encode('utf-8', 'replace'))
+        card_list.append(module.BuildCard(card))
+        back_list.append(module.BuildBack(card))
         # If the card_list is big enough to make a page
         # do that now, and set the card list to empty again
         if len(card_list) >= cards_per_page:
@@ -200,13 +202,13 @@ def generate_pdf(workspace_path, output_folder, card_set):
         print "\nCreating PDF (Windows)..."
         if os.path.isfile(r'imagemagick\convert.exe'):
             # on windows it working only with ascii path
-            os.system(ur'imagemagick\convert.exe "{}/page_*.png" "{}/{}.pdf"'.format(
+            os.system(ur'imagemagick\convert.exe "{}/page_*.*" "{}/{}.pdf"'.format(
                 workspace_path.decode('utf-8'),
                 output_folder,
                 card_set
                 ))
             print "\nCreating PDF of backs..."
-            os.system(ur'imagemagick\convert.exe "{}/backs_*.png" "{}/backs_{}.pdf"'.format(
+            os.system(ur'imagemagick\convert.exe "{}/backs_*.*" "{}/backs_{}.pdf"'.format(
                 workspace_path.decode('utf-8'),
                 output_folder,
                 card_set
@@ -218,13 +220,13 @@ def generate_pdf(workspace_path, output_folder, card_set):
 
     else:
         print "\nCreating PDF (*nix)..."
-        os.system(ur'convert "{}/page_*.png" "{}/{}.pdf"'.format(
+        os.system(ur'convert "{}/page_*.*" "{}/{}.pdf"'.format(
             workspace_path.decode('utf-8'),
             output_folder,
             card_set
             ).encode('utf-8'))
         print "\nCreating PDF of backs..."
-        os.system(ur'convert "{}/backs_*.png" "{}/backs_{}.pdf"'.format(
+        os.system(ur'convert "{}/backs_*.*" "{}/backs_{}.pdf"'.format(
             workspace_path.decode('utf-8'),
             output_folder,
             card_set

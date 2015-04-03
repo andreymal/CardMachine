@@ -219,26 +219,30 @@ custom_backs = {}
 
 CopyrightString = u"{}; TSSSF by Horrible People Games. Art by {}."
 
+def ParseCustomPath(custom_item):
+    if custom_item[0] == "card_art":
+        path = os.path.join(CardPath, custom_item[1])
+    elif custom_item[0] == "resource":
+        path = os.path.join(ResourcePath, custom_item[1])
+    elif custom_item[0] == "local":
+        path = os.path.join(CardSetPath, custom_item[1])
+    else:
+        raise ValueError("Unknown path type: %r" % custom_item[0])
+    return path
+
 def GetCustomImage(custom_cache, custom_item):
     custom_item = tuple(custom_item[:2])
     if not custom_item in custom_cache:
-        if custom_item[0] == "card_art":
-            path = os.path.join(CardPath, custom_item[1])
-        elif custom_item[0] == "resource":
-            path = os.path.join(ResourcePath, custom_item[1])
-        elif custom_item[0] == "local":
-            path = os.path.join(CardSetPath, custom_item[1])
-        else:
-            raise ValueError("Unknown path type: %r" % custom_item[0])
+        path = ParseCustomPath(custom_item)
         custom_cache[custom_item] = PIL_Helper.LoadImage(path)
     return custom_cache[custom_item]
 
-def FixFileName(tagin):
+def FixFileName(tagin, extension):
     FileName = tagin.replace("\n", "")
     invalid_chars = [",", "?", '"', ":"]
     for c in invalid_chars:
         FileName = FileName.replace(c,"")
-    FileName = u"{0}.png".format(FileName)
+    FileName = u"{0}.{1}".format(FileName, extension)
     #print FileName
     return FileName
 
@@ -273,6 +277,8 @@ def SaveCard(filepath, image_to_save):
     extension. If that exists, increment the number until we get to
     a filepath that doesn't exist yet.
     '''
+    if image_to_save.mode != "RGB":
+        image_to_save = image_to_save.convert("RGB")
     if os.path.exists(filepath):
         basepath, extension = os.path.splitext(filepath)
         i = 0
@@ -285,11 +291,11 @@ def BuildCard(tags):
     try:
         im = PickCardFunc(tags)
         im_crop=im.crop(croprect)
-        if tags['type'] not in ('BLANK',):
-            filename = FixFileName(tags['type'] + "_" + (tags.get('title') or tags.get('picture')))
+        if tags['type'] not in ('BLANK',) and tags.get('save', True):
+            filename = FixFileName(tags['type'] + "_" + (tags.get('title') or tags.get('picture')), tags.get('extension', 'png'))
             SaveCard(os.path.join(BleedsPath, filename), im)
-
             SaveCard(os.path.join(CropPath, filename), im_crop)
+
             im_vassal=PIL_Helper.ResizeImage(im_crop, VASSAL_SCALE)
             SaveCard(os.path.join(VassalPath, filename), im_vassal)
         #MakeVassalCard(im_cropped)
@@ -382,7 +388,6 @@ def TitleText(image, text, color):
     if len(text)>TitleWidthThresholds[0]:
         anchor = Anchors["TitleSmall"]
         font = fonts["TitleSmall"]
-    print repr(text)
     PIL_Helper.AddText(
         image = image,
         text = text,
@@ -553,7 +558,6 @@ def MakeGoalCard(tags):
     return image
 
 def MakeSpecialCard(picture, custom_frame=None):
-    print repr(picture)
     return GetFrame(picture, custom_frame)
 
 def InitVassalModule():

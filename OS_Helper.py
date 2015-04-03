@@ -21,12 +21,12 @@ def CleanDirectory(path=".", mkdir="workspace", rmstring="*.*"):
     return dir_path
 
 
-def BuildPage(card_list, page_num, workspace_path, *args, **kwargs):
-    kwargs['filename'] = os.path.join(workspace_path, "page_{0:>03}.png".format(page_num))
+def BuildPage(card_list, page_num, workspace_path, extension, *args, **kwargs):
+    kwargs['filename'] = os.path.join(workspace_path, "page_{0:>03}.{1}".format(page_num, extension))
     PIL_Helper.BuildPage(card_list, *args, **kwargs)
 
 
-def BuildBack(card_list, page_num, workspace_path, *args, **kwargs):
-    kwargs['filename'] = os.path.join(workspace_path, "backs_{0:>03}.png".format(page_num))
+def BuildBack(card_list, page_num, workspace_path, extension, *args, **kwargs):
+    kwargs['filename'] = os.path.join(workspace_path, "backs_{0:>03}.{1}".format(page_num, extension))
     kwargs['reverse'] = True
     PIL_Helper.BuildPage(card_list, *args, **kwargs)
