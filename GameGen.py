@@ -61,7 +61,9 @@ def unpack_card_group(cards, group=None):
     unpacked_cards = []
     for card in cards:
         if 'group' in card and 'cards' in card:
-            unpacked_cards.extend(unpack_card_group(card['cards'], card['group']))
+            new_group = dict(group)
+            new_group.update(card['group'])
+            unpacked_cards.extend(unpack_card_group(card['cards'], new_group))
         else:
             new_card = dict(group)
             new_card.update(card)
