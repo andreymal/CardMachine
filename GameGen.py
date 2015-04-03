@@ -141,9 +141,23 @@ def build_cards(module, data):
     output_folder = CleanDirectory(path=data['game'], mkdir=data['card_set'], rmstring="*.pdf")
     module.CardSetPath = output_folder
 
-    cards_per_page = data.get('pdf', {}).get('cards_per_page', module.TOTAL_CARDS)
-    page_width = data.get('pdf', {}).get('page_width', module.PAGE_WIDTH)
-    page_height = data.get('pdf', {}).get('page_height', module.PAGE_HEIGHT)
+    pdf = data.get('pdf', {})
+    cards_per_page = pdf.get('cards_per_page', module.TOTAL_CARDS)
+
+    page_params = {}
+    if 'dpi' in pdf:
+        page_params['dpi'] = pdf['dpi']
+    if 'cut_line_width' in pdf:
+        page_params['cut_line_width'] = pdf['cut_line_width']
+    if 'page' in pdf:
+        page_params['page_width'] = pdf['page'][0]
+        page_params['page_height'] = pdf['page'][1]
+    if 'grid' in pdf:
+        page_params['grid_width'] = pdf['grid'][0]
+        page_params['grid_height'] = pdf['grid'][1]
+    else:
+        page_params['grid_width'] = module.PAGE_WIDTH
+        page_params['grid_height'] = module.PAGE_HEIGHT
 
     # Make pages
     card_list = []
@@ -158,8 +172,8 @@ def build_cards(module, data):
         if len(card_list) >= cards_per_page:
             page_num += 1
             print "Building Page {}...".format(page_num)
-            BuildPage(card_list, page_num, page_width, page_height, workspace_path)
-            BuildBack(back_list, page_num, page_width, page_height, workspace_path)
+            BuildPage(card_list, page_num, workspace_path, **page_params)
+            BuildBack(back_list, page_num, workspace_path, **page_params)
             card_list = []
             back_list = []
 
@@ -172,8 +186,8 @@ def build_cards(module, data):
             back_list.append(module.BuildCard({"type": "BLANK"}))
         page_num += 1
         print "Building Page {}...".format(page_num)
-        BuildPage(card_list, page_num, page_width, page_height, workspace_path)
-        BuildBack(back_list, page_num, page_width, page_height, workspace_path)
+        BuildPage(card_list, page_num, workspace_path, **page_params)
+        BuildBack(back_list, page_num, workspace_path, **page_params)
 
     #Build Vassal
     module.CompileVassalModule()
@@ -239,7 +253,7 @@ if __name__ == '__main__':
     #main('TSSSF', 'Core 1.1.0 Test/cards.pon')
     #main('TSSSF', 'Custom Card for/cards.pon')
     #main('TSSSF', 'Extra Credit 0.10.4/cards.pon')
-    main('TSSSF', 'Indiegogo/cards.pon')
+    main('TSSSF', 'Indiegogo/cards.json')
     #main('TSSSF', 'Patreon Expansion 1/cards.pon')
     #main('TSSSF', 'Ponycon Panel 2015/cards.pon')
     #main('TSSSF', 'Ponyville University 0.0.2/cards.pon')

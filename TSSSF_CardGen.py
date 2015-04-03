@@ -137,7 +137,6 @@ Symbols = {
     "3-4": PIL_Helper.LoadImage(ResourcePath+"/symbol-34.png"),
     "2-3": PIL_Helper.LoadImage(ResourcePath+"/symbol-23.png")
     }
-TIMELINE_SYMBOL_LIST = ["Dystopian"]
 
 Expansions = {
     "Everfree14": PIL_Helper.LoadImage(ResourcePath+"/symbol-Everfree14.png"),
@@ -350,25 +349,28 @@ def AddCardArt(image, filename, anchor):
 
 def AddSymbols(image, symbols, card_type=""):
     # Remove any timeline symbols from the symbols list
-    pruned_symbols = set(symbols)-set(TIMELINE_SYMBOL_LIST)
+    symbols = [x.lower() for x in symbols]
     if card_type == "Goal":
+        if len(symbols) != 2:
+            raise Exception("Goal should have two symbols")
         positions = [Anchors["LoneSymbol"], Anchors["GoalSymbol2"]]
     else:
         # If there's only one non-timeline symbol in the list,
         # Set it right on the corner of the picture.
         # Otherwise, adjust so the symbols share the space
-        if len(pruned_symbols) == 1:
+        if len(symbols) == 1:
             positions = [Anchors["LoneSymbol"]]
-        else:
+        elif len(symbols) == 2:
             positions = [Anchors["Symbol1"], Anchors["Symbol2"]]
+        elif len(symbols) == 3:
+            positions = [Anchors["Symbol1"], Anchors["Symbol2"], Anchors["TimelineSymbol"]]
+        else:
+            raise Exception("Too many symbols")
 
     for index,s in enumerate(symbols):
-        sym = Symbols.get(s.lower(), None)
+        sym = Symbols.get(s, None)
         if sym:
-            if s in TIMELINE_SYMBOL_LIST:
-                image.paste(sym, Anchors["TimelineSymbol"], sym)
-            else:
-                image.paste(sym, positions[index], sym)
+            image.paste(sym, positions[index], sym)
 
 def TitleText(image, text, color):
     font = fonts["Title"]

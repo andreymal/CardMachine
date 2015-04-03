@@ -158,22 +158,34 @@ def AddText(image, text, font, fill=(0,0,0), anchor=(0,0),
     return total_text_size
 
 def BuildPage(card_list, grid_width, grid_height, filename,
-              cut_line_width=3, page_ratio=8.5/11.0, h_margin=100):
+              cut_line_width=3, page_ratio=8.5/11.0, h_margin=100,
+              page_width=8.5, page_height=11.0, dpi=300, reverse=False):
     '''
     Adds cards, in order, to a grid defined by grid_width, grid_height.
     It then adds a border to the grid, making sure to preserve the
     page ratio for later printing, and saves to filename
     Assumes that all the cards are the same size
     '''
+    k = float(dpi) / 300 if dpi != 300 else 1
     # Create card grid based on size of the first card
-    w,h = card_list[0].size
-    bg = Image.new("RGB", (w*grid_width, h*grid_height))
+    w,h = card_list[grid_width - 1 if reverse else 0].size
+    if k != 1:
+        w = int(w * k)
+        h = int(h * k)
+        cut_line_width = int(cut_line_width * k)
+    bg = Image.new("RGB", (
+        w*grid_width + cut_line_width * (grid_width - 1),
+        h*grid_height + cut_line_width * (grid_height - 1)
+        )
+    )
     # Add cards to the grid, top down, left to right
     for y in xrange(grid_height):
         for x in xrange(grid_width):
             card = card_list.pop(0)
-            coords = (x*(w+cut_line_width),
+            coords = ((grid_width - x - 1 if reverse else x)*(w+cut_line_width),
                       y*(h+cut_line_width))
+            if k != 1:
+                card = ResizeImage(card, (int(card.size[0] * k), int(card.size[1] * k)))
             bg.paste(card, coords)
     # If there's a margin defined, add extra whitespace around the page
     # if h_margin > 0:
@@ -187,19 +199,26 @@ def BuildPage(card_list, grid_width, grid_height, filename,
         # bg.save(filename)
     # Create a paper image the exact size of an 8.5x11 paper
     # to paste the card images onto
-    paper_width = int(8.5*300)  # 8.5 inches times 300 dpi
-    paper_height = int(11*300)  # 11 inches times 300 dpi
+    paper_width = int(page_width * dpi)  # width in inches
+    paper_height = int(page_height * dpi)  # height in inches
     paper_image = Image.new("RGB", (paper_width, paper_height), (255, 255, 255))
     w,h = bg.size
     # TODO Add code that shrinks the bg if it's bigger than any dimension
     # of the Paper image
     paper_image.paste(bg, ((paper_width - w)/2, (paper_height - h)/2))
-    paper_image.save(filename, dpi=(300, 300))
+    paper_image.save(filename, dpi=(dpi, dpi))
 
 def BlankImage(w, h, color=(255,255,255), image_type="RGBA"):
     return Image.new(image_type, (w, h), color=color)
 
 def LoadImage(filepath):
+    if not os.path.exists(filepath):
+        # case insensitive for *nix
+        folder, name = os.path.split(filepath)
+        for x in os.listdir(folder):
+            if x.lower() == name.lower():
+                filepath = os.path.join(folder, x)
+                break
     return Image.open(filepath)
 
 def ResizeImage(image, size, method=Image.ANTIALIAS):
