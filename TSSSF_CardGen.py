@@ -306,7 +306,7 @@ def BuildBack(tags):
     if tags.get('back'):
         return GetCustomImage(custom_backs, tags['back'])
     return backs[tags['type']]
-  
+
 def PickCardFunc(tags):
     if tags['type'] == "START":
         return MakeStartCard(tags)
