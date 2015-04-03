@@ -44,7 +44,7 @@ def load_cards_file(path, save_tsssf_converted=True):
     data['card_set'] = card_set
 
     # prepare cards
-    data['cards'] = unpack_card_group(data['cards'])
+    data['cards'] = unpack_card_group(data['cards'], data.get('default'))
     data['cards'] = select_focused_cards(data['cards'])
 
     if not path.endswith('.json') and save_tsssf_converted and data['module'] == 'TSSSF_CardGen':
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     #main('TSSSF', 'Core 1.1.0 Test/cards.pon')
     #main('TSSSF', 'Custom Card for/cards.pon')
     #main('TSSSF', 'Extra Credit 0.10.4/cards.pon')
-    main('TSSSF', 'Indiegogo/cards.json')
+    main('TSSSF', 'Indiegogo/cards.pon')
     #main('TSSSF', 'Patreon Expansion 1/cards.pon')
     #main('TSSSF', 'Ponycon Panel 2015/cards.pon')
     #main('TSSSF', 'Ponyville University 0.0.2/cards.pon')
