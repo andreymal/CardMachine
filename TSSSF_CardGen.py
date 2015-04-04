@@ -15,6 +15,9 @@ def convert_line(line):
         value = old_tags[index]
         if index == 2:  # SYMBOLS
             value = value.split('!')
+            if 'Dystopian' in value:
+                new_tags['timeline_symbol'] = 'Dystopian'
+                value.remove('Dystopian')
         new_tags[tag] = value
     return new_tags
 
@@ -291,6 +294,10 @@ def GetColor(tags, param=""):
     key = "{} {}".format(tags['type'], param) if param else tags['type']
     return ColorDict.get(key) or ColorDict[param]
 
+def LoadSymbols(data):
+    for sym, path in data.items():
+        Symbols[sym.lower()] = PIL_Helper.LoadImage(os.path.join(ResourcePath, path))
+
 def FixFileName(tagin, extension):
     FileName = tagin.replace("\n", "")
     invalid_chars = [",", "?", '"', ":"]
@@ -415,15 +422,10 @@ def AddSymbols(image, tags):
             raise Exception("Goal should have two symbols")
         positions = [GetAnchor("LoneSymbol", tags), GetAnchor("GoalSymbol2", tags)]
     else:
-        # If there's only one non-timeline symbol in the list,
-        # Set it right on the corner of the picture.
-        # Otherwise, adjust so the symbols share the space
         if len(symbols) == 1:
             positions = [GetAnchor("LoneSymbol", tags)]
         elif len(symbols) == 2:
             positions = [GetAnchor("Symbol1", tags), GetAnchor("Symbol2", tags)]
-        elif len(symbols) == 3:
-            positions = [GetAnchor("Symbol1", tags), GetAnchor("Symbol2", tags), GetAnchor("TimelineSymbol", tags)]
         else:
             raise Exception("Too many symbols")
 
@@ -431,6 +433,12 @@ def AddSymbols(image, tags):
         sym = Symbols.get(s, None)
         if sym:
             image.paste(sym, positions[index], sym)
+
+    if tags.get('timeline_symbol'):
+        s = tags['timeline_symbol'].lower()
+        sym = Symbols.get(s, None)
+        if sym:
+            image.paste(sym, GetAnchor("TimelineSymbol", tags), sym)
 
 def TitleText(image, text, color, tags=None):
     font = GetFont("Title", tags)

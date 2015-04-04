@@ -142,6 +142,9 @@ def build_cards(module, data):
     module.CardSet = data['card_set']
     card_set_path = os.path.join(data['game'], data['card_set'])
 
+    if 'symbols' in data and getattr(module, 'LoadSymbols', None):
+        module.LoadSymbols(data['symbols'])
+
     # Create workspace for card images
     workspace_path = CleanDirectory(path=card_set_path, mkdir="workspace", rmstring="*.*")
     module.workspace_path = workspace_path
@@ -272,7 +275,7 @@ if __name__ == '__main__':
     #main('TSSSF', 'Core 1.1.0 Test/cards.pon')
     #main('TSSSF', 'Custom Card for/cards.pon')
     #main('TSSSF', 'Extra Credit 0.10.4/cards.pon')
-    main('TSSSF', 'Indiegogo/cards.pon')
+    main('TSSSF', 'Indiegogo/cards.json')
     #main('TSSSF', 'Patreon Expansion 1/cards.pon')
     #main('TSSSF', 'Ponycon Panel 2015/cards.pon')
     #main('TSSSF', 'Ponyville University 0.0.2/cards.pon')

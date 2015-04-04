@@ -1,0 +1,124 @@
+{
+ "module": "TSSSF_CardGen",
+ "comment": "Remove '_1' from disabled keys and use it!",
+
+ "symbols_1": {
+  "foePE": "Symbol-foePE.png"
+ },
+
+ "default_1": {
+  "extension": "bmp",
+
+  "anchors_offset": {"Bar": [0, -1]},
+  "colors": {"Main": [255, 0, 0]},
+  "leading": {"Flavor": -10},
+
+  "fonts": {
+   "Title": "TSSSFBartholomew-Bold.otf",
+   "Copyright": "TSSSFCabin-Medium.ttf"
+   }
+ },
+
+ "pdf_1": {
+  "page": [8.267, 11.692],
+  "pages_extension": "jpg"
+ },
+
+ "cards": [
+  {
+   "type": "START",
+   "picture": "00 START.png",
+   "symbols": ["Female", "Unicorn"],
+   "title": "Fanfic Author Twilight",
+   "keywords": "Mane 6, Twilight Sparkle",
+   "body": "Place this card in the center of the table at the start of the game.\nThis card cannot be moved or removed from the grid. This power can't be copied.",
+   "flavor": "She was no writer. She was a prophet. Her words spanned the universes, sang hymns to the terrible improbability of life and love. She was like unto a god, Twilight was.\n- Element of Magic: An Autobiography"
+  },
+
+  {
+   "type": "Pony",
+   "picture": "Pony - Star Student Twilight Sparkle.png",
+   "symbols": ["Female", "Unicorn"],
+   "title": "Star Student Twilight",
+   "keywords": "Mane 6, Twilight Sparkle",
+   "body": "Totally Not Cheating (Copy): {copy}",
+   "flavor": "\"W-what? This cannot be!\" Trixie stood aghast over the masterful masterpieces Twilight had laid out in runic scrawl on her desk, \"Nopony could solve The Last Riddle! And in such an elegant way... It's IMPOSSIBLE!\"\n- Element of Magic: An Autobiography"
+  },
+
+  {
+   "type": "Pony",
+   "picture": "Pony - Super Spy Twilight.png",
+   "symbols": ["Female", "Unicorn"],
+   "timeline_symbol": "Dystopian",
+   "title": "Super Spy Twilight",
+   "keywords": "Mane 6, Twilight Sparkle",
+   "body": "Debriefing (Search): {search} If it's still in your hand at the end of your turn, discard it.",
+   "flavor": "\"Who are you?\" whispered the blood-soaked mare as she cowered. \"I am Death,\" hissed Twilight Sparkle as she pulled the trigger. Bang! - Of Ponies and Peril, Chapter 2",
+   "artist": "Pixel Prism",
+   "leading": {"Flavor": 12}
+  },
+
+  {
+   "type": "Card",
+   "picture": "Derpy"
+  },
+
+  {
+   "type": "Pony",
+   "picture": "Pony - Test Subject Cheerilee.png",
+   "symbols": ["Female", "Earth Pony"],
+   "title": "Test Subject Cheerilee",
+   "keywords": "Cheerilee",
+   "body": "Let's Do Some Tests(Special): When Cheerilee is shipped with 4 Pony cards, discard her from the grid. Turn over Temporary Goal. Temporary Goals are not replaced with a new goal when they are won.",
+   "flavor": "What are you doing? Come back here! Stop messing things up!! I'LL SHIP YOU WITH CRACKLE, I SWEAR I WILL! - Unknown",
+   "overlay": "Pony - Test Subject Cheerilee (overlay).png"
+  },
+
+  {
+   "type": "Ship",
+   "picture": "Ship - So That's What That Does.png",
+   "symbols": ["Ship"],
+   "title": "So THAT'S What That Does!",
+   "keywords": "Race Change",
+   "body": "{race change}",
+   "flavor": "Serendipity, that's what it was. \"Mistake\" is such an ugly word... - Magical Makeover"
+  },
+
+  {
+   "type": "Goal",
+   "picture": "Goal - Wingboner.png",
+   "symbols": ["Goal", "1"],
+   "title": "Pomf!",
+   "body": "Win this Goal when:\n3 {pegasus}/{pegasus} pairs are in play at once.\n{alicorn} count as {pegasus} for this Goal.",
+   "flavor": "Derpy gasped, hooves flinging into the air. \"You have wings? I have wings too! Let's be friends!\" - Tuck and Roll"
+  },
+
+  {
+   "type": "BLANK"
+  },
+
+  {
+   "type": "Goal",
+   "picture": "Goal - Cargo Ship.png",
+   "symbols": ["Goal", "3"],
+   "title": "Cargo Ship",
+   "body": "Ship 2 Ponies with the Object keyword.",
+   "flavor": "He was her rock. She gave him endless comfort. It was a match made in heaven. - Diamond in the Rough"
+  },
+
+  {
+   "type": "Rules1",
+   "picture": "Rules1"
+  },
+
+  {
+   "type": "Rules3",
+   "picture": "Rules3"
+  },
+
+  {
+   "type": "Rules5",
+   "picture": "Rules5"
+  }
+ ]
+}
