@@ -506,56 +506,48 @@ def MakeBlankCard():
         )    
     return image
 
-def MakeStartCard(tags):
-    image = GetFrame(tags['type'], tags.get('frame'))
-    AddCardArt(image, tags['picture'], Anchors["PonyArt"])
-    TitleText(image, tags['title'], ColorDict["START"])
-    AddSymbols(image, tags['symbols'])
-    BarText(image, tags['keywords'], ColorDict["START bar text"])
-    text_size = FlavorText(image, tags['flavor'], ColorDict["START flavor"])
-    BodyText(image, tags['body'], ColorDict["START"], text_size)
-    CopyrightText(tags, image, ColorDict["Copyright"])
+
+def GetColor(tags, param=""):
+    if 'colors' in tags and (param or "main") in tags['colors']:
+        return tuple(tags['colors'][param or "main"])
+    key = "{} {}".format(tags['type'], param) if param else tags['type']
+    return ColorDict[key]
+
+
+def MakeStandardCard(tags, add_symbols=True, image=None):
+    if not image:
+        image = GetFrame(tags['type'], tags.get('frame'))
+        AddCardArt(image, tags['picture'], Anchors["PonyArt"])
+    TitleText(image, tags['title'], GetColor(tags))
+    if tags.get('keywords'):
+        BarText(image, tags['keywords'], GetColor(tags, "bar text"))
+    text_size = FlavorText(image, tags['flavor'], GetColor(tags, "flavor"))
+    BodyText(image, tags['body'], GetColor(tags), text_size)
+    CopyrightText(tags, image, tags.get("copyright_color", ColorDict["Copyright"]))
     if tags.get('expansion'):
         AddExpansion(image, tags['expansion'])
+    if add_symbols:
+        AddSymbols(image, tags['symbols'])
     return image
 
+def MakeStartCard(tags):
+    return MakeStandardCard(tags)
+
 def MakePonyCard(tags):
-    image = GetFrame(tags['type'], tags.get('frame'))
-    AddCardArt(image, tags['picture'], Anchors["PonyArt"])
-    TitleText(image, tags['title'], ColorDict["Pony"])
-    AddSymbols(image, tags['symbols'])
-    BarText(image, tags['keywords'], ColorDict["Pony bar text"])
-    text_size = FlavorText(image, tags['flavor'], ColorDict["Pony flavor"])
-    BodyText(image, tags['body'], ColorDict["Pony"], text_size)
-    CopyrightText(tags, image, ColorDict["Copyright"])
-    if tags.get('expansion'):
-        AddExpansion(image, tags['expansion'])
-    return image
+    return MakeStandardCard(tags)
 
 def MakeShipCard(tags):
     image = GetFrame(tags['type'], tags.get('frame'))
     AddCardArt(image, tags['picture'], Anchors["ShipArt"])
-    TitleText(image, tags['title'], ColorDict["Ship"])
+    image = MakeStandardCard(tags, False, image)
     AddSymbols(image, tags['symbols'], "Ship")
-    #AddSymbols(image, "Ship")
-    BarText(image, tags['keywords'], ColorDict["Ship bar text"])
-    text_size = FlavorText(image, tags['flavor'], ColorDict["Ship flavor"])
-    BodyText(image, tags['body'], ColorDict["Ship"], text_size)
-    CopyrightText(tags, image, ColorDict["Copyright"])
-    if tags.get('expansion'):
-        AddExpansion(image, tags['expansion'])
     return image
 
 def MakeGoalCard(tags):
     image = GetFrame(tags['type'], tags.get('frame'))
     AddCardArt(image, tags['picture'], Anchors["GoalArt"])
-    TitleText(image, tags['title'], ColorDict["Goal"])
-    AddSymbols(image, tags['symbols'], card_type="Goal")
-    text_size = FlavorText(image, tags['flavor'], ColorDict["Goal flavor"])
-    BodyText(image, tags['body'], ColorDict["Goal"], text_size)
-    CopyrightText(tags, image, ColorDict["Copyright"])
-    if tags.get('expansion'):
-        AddExpansion(image, tags['expansion'])
+    image = MakeStandardCard(tags, False, image)
+    AddSymbols(image, tags['symbols'], card_type=tags['type'])
     return image
 
 def MakeSpecialCard(picture, custom_frame=None):
