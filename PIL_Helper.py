@@ -47,7 +47,7 @@ def GetTextBlockSize(text, font, max_width=-1, leading_offset=0):
     else:
         wrapped_text = text
     lines = wrapped_text.split('\n')
-    
+
     # Set leading
     leading = font.font.ascent + font.font.descent + leading_offset
 
@@ -61,6 +61,54 @@ def GetTextBlockSize(text, font, max_width=-1, leading_offset=0):
     return (max_line_width, len(lines)*leading)
 
 def AddText(image, text, font, fill=(0,0,0), anchor=(0,0),
+            max_width=-1, halign="center", valign="top", leading_offset=0,
+            rotate=0):
+    '''
+    @return (int, int): Total width and height of the text block
+        added, in pixels.
+    '''
+
+    if rotate:
+        return AddRotatedText(image, text, font, fill, anchor, max_width,
+                       halign, valign, leading_offset, rotate)
+
+    if max_width > -1:
+        lines = WrapText(text, font, max_width).split('\n')
+    else:
+        lines = text.split('\n')
+
+    # Initiliaze draw object
+    draw = ImageDraw.Draw(image)
+
+    # Set leading
+    leading = font.font.ascent + font.font.descent + leading_offset
+
+    # Find the absolute anchor
+    w, h = image.size
+    anchor = (w + anchor[0] if anchor[0] < 0 else anchor[0],
+              h + anchor[1] if anchor[1] < 0 else anchor[1])
+
+    halign = ("left", "center", "right").index(halign)
+    valign = ("top", "center", "bottom").index(valign)
+
+    # Begin laying down the lines, top to bottom
+    start_x = anchor[0]
+    y = anchor[1] - int(len(lines) * leading * valign * 0.5 - leading_offset * 0.5)
+    max_line_width = 0
+
+    for line in lines:
+        # If current line is blank, just change y and skip to next
+        if line:
+            line_width = font.getsize(line)[0]
+            x_pos = start_x - int(line_width * halign * 0.5)
+            # Keep track of the longest line width
+            max_line_width = max(max_line_width, line_width)
+            draw.text((x_pos, y), line, font=font, fill=fill)
+        y += leading
+
+    return (max_line_width, len(lines) * leading)
+
+def AddRotatedText(image, text, font, fill=(0,0,0), anchor=(0,0),
             max_width=-1, halign="center", valign="top", leading_offset=0,
             rotate=0):
     '''
@@ -90,7 +138,7 @@ def AddText(image, text, font, fill=(0,0,0), anchor=(0,0),
         start_x = 2500
     elif halign == "right":
         start_x = 4500
-    
+
     # Set leading
     leading = font.font.ascent + font.font.descent + leading_offset
 
@@ -136,7 +184,7 @@ def AddText(image, text, font, fill=(0,0,0), anchor=(0,0),
     x, y = image.size
     anchor_x = anchor[0]+x if anchor[0] < 0 else anchor[0]
     anchor_y = anchor[1]+y if anchor[1] < 0 else anchor[1]
-        
+
     # Determine the anchor point for the new layer
     width, height = layer.size
     if halign == "left":
@@ -151,8 +199,8 @@ def AddText(image, text, font, fill=(0,0,0), anchor=(0,0),
         coords_y = anchor_y - height/2
     elif valign == "bottom":
         coords_y = anchor_y - height
-    
-    image.paste(ImageOps.colorize(layer, (255,255,255), fill),
+
+    image.paste(ImageOps.colorize(layer, fill, fill),
                 (coords_x, coords_y), layer)
 
     return total_text_size
