@@ -68,6 +68,8 @@ fonts = {
     "Copyright":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 18)
 }
 
+custom_fonts = {}
+
 Anchors = {
     "Blank": (base_w_center, 300),
     "PonyArt": (173, 225),
@@ -232,11 +234,44 @@ def ParseCustomPath(custom_item):
     return path
 
 def GetCustomImage(custom_cache, custom_item):
-    custom_item = tuple(custom_item[:2])
-    if not custom_item in custom_cache:
+    if isinstance(custom_item, unicode):
+        cutsom_item = ('resource', custom_item)
+    else:
+        custom_item = tuple(custom_item[:2])
+    if custom_item not in custom_cache:
         path = ParseCustomPath(custom_item)
         custom_cache[custom_item] = PIL_Helper.LoadImage(path)
     return custom_cache[custom_item]
+
+def GetFont(typ, tags=None):
+    if not tags or 'fonts' not in tags or typ not in tags['fonts']:
+        return fonts[typ]
+    custom_item = tuple(tags['fonts'][typ][:3])
+    if not custom_item in custom_fonts:
+        path = ParseCustomPath(custom_item)
+        custom_fonts[custom_item] = PIL_Helper.BuildFont(path, custom_item[2])
+    return custom_fonts[custom_item]
+
+def GetLeading(typ, tags=None, default=0):
+    if not tags or not 'leading' in tags:
+        return default
+    return tags['leading'].get(typ, default)
+
+def GetAnchor(typ, tags=None):
+    if not tags or 'anchors' not in tags:
+        anchor = Anchors[typ]
+    else:
+        anchor = tags['anchors'].get(typ) or Anchors[typ]
+    if tags and 'anchors_offset' in tags:
+        anchor_offset = tags['anchors_offset'].get(typ, (0, 0))
+        anchor = tuple(sum(x) for x in zip(anchor, anchor_offset))
+    return anchor
+
+def GetColor(tags, param=""):
+    if 'colors' in tags and (param or "main") in tags['colors']:
+        return tuple(tags['colors'][param or "main"])
+    key = "{} {}".format(tags['type'], param) if param else tags['type']
+    return ColorDict.get(key) or ColorDict[param]
 
 def FixFileName(tagin, extension):
     FileName = tagin.replace("\n", "")
@@ -354,23 +389,23 @@ def AddCardArt(image, filename, anchor):
     art = PIL_Helper.ResizeImage(art, (ART_WIDTH,h))
     image.paste(art, anchor)
 
-def AddSymbols(image, symbols, card_type=""):
+def AddSymbols(image, tags):
     # Remove any timeline symbols from the symbols list
-    symbols = [x.lower() for x in symbols]
-    if card_type == "Goal":
+    symbols = [x.lower() for x in tags.get('symbols', ())]
+    if tags['type'] == "Goal":
         if len(symbols) != 2:
             raise Exception("Goal should have two symbols")
-        positions = [Anchors["LoneSymbol"], Anchors["GoalSymbol2"]]
+        positions = [GetAnchor("LoneSymbol", tags), GetAnchor("GoalSymbol2", tags)]
     else:
         # If there's only one non-timeline symbol in the list,
         # Set it right on the corner of the picture.
         # Otherwise, adjust so the symbols share the space
         if len(symbols) == 1:
-            positions = [Anchors["LoneSymbol"]]
+            positions = [GetAnchor("LoneSymbol", tags)]
         elif len(symbols) == 2:
-            positions = [Anchors["Symbol1"], Anchors["Symbol2"]]
+            positions = [GetAnchor("Symbol1", tags), GetAnchor("Symbol2", tags)]
         elif len(symbols) == 3:
-            positions = [Anchors["Symbol1"], Anchors["Symbol2"], Anchors["TimelineSymbol"]]
+            positions = [GetAnchor("Symbol1", tags), GetAnchor("Symbol2", tags), GetAnchor("TimelineSymbol", tags)]
         else:
             raise Exception("Too many symbols")
 
@@ -379,16 +414,16 @@ def AddSymbols(image, symbols, card_type=""):
         if sym:
             image.paste(sym, positions[index], sym)
 
-def TitleText(image, text, color):
-    font = fonts["Title"]
-    anchor = Anchors["Title"]
-    leading = -9
+def TitleText(image, text, color, tags=None):
+    font = GetFont("Title", tags)
+    anchor = GetAnchor("Title", tags)
+    leading = GetLeading("Title", tags, -9)
     if text.count('\n') > 0:
-        anchor = Anchors["TitleTwoLine"]
-        leading = -15
+        anchor = GetAnchor("TitleTwoLine", tags)
+        leading = GetLeading("TitleTwoLine", tags, -15)
     if len(text)>TitleWidthThresholds[0]:
-        anchor = Anchors["TitleSmall"]
-        font = fonts["TitleSmall"]
+        anchor = GetAnchor("TitleSmall", tags)
+        font = GetFont("TitleSmall", tags)
     PIL_Helper.AddText(
         image = image,
         text = text,
@@ -400,51 +435,51 @@ def TitleText(image, text, color):
         leading_offset = leading
         )
 
-def BarText(image, text, color):
-    bar_text_size = PIL_Helper.GetTextBlockSize(text,fonts["Bar"],textmaxwidth)
+def BarText(image, text, color, tags=None):
+    bar_text_size = PIL_Helper.GetTextBlockSize(text,GetFont("Bar", tags),textmaxwidth)
     if bar_text_size[0] > BarTextThreshold[0]:
-        font = fonts["BarSmall"]
+        font = GetFont("BarSmall", tags)
     else:
-        font = fonts["Bar"]
+        font = GetFont("Bar", tags)
     PIL_Helper.AddText(
         image = image,
         text = text,
         font = font,
         fill = color,
-        anchor = Anchors["Bar"],
+        anchor = GetAnchor("Bar", tags),
         halign = "right"
         )
 
-def BodyText(image, text, color, flavor_text_size=0, font=None):
+def BodyText(image, text, color, flavor_text_size=0, font=None, tags=None):
     # Replacement of keywords with symbols
     for keyword in RulesDict:
         if keyword in text:
             text = text.replace(keyword, RulesDict[keyword])
     text = FixUnicode(text)
     if font is None:
-        font = fonts["Body"]
-    anchor = Anchors["Body"]
-    leading = -1
+        font = GetFont("Body", tags)
+    anchor = GetAnchor("Body", tags)
+    leading = GetLeading("Body", tags, -1)
     # Get the size of the body text as (w,h)
     body_text_size = PIL_Helper.GetTextBlockSize(
-        text, fonts["Body"], textmaxwidth
+        text, GetFont("Body", tags), textmaxwidth
         )
     # If the height of the body text plus the height of the flavor text
     # doesn't fit in on the card in the normal position, move the body text up
     if body_text_size[1] + flavor_text_size[1] > TextHeightThresholds[0]:
-        anchor = Anchors["BodyShiftedUp"]
+        anchor = GetAnchor("BodyShiftedUp", tags)
     # If they still don't fit, makes the body text smaller
     if body_text_size[1] + flavor_text_size[1] > TextHeightThresholds[1]:
-        font = fonts["BodySmall"]
+        font = GetFont("BodySmall", tags)
         body_text_size = PIL_Helper.GetTextBlockSize(
             text, font, textmaxwidth
             )
         # If they still don't fit, make it smaller again. They're probably
         # the changeling cards
         if body_text_size[1] + flavor_text_size[1] > TextHeightThresholds[1]:
-            font = fonts["BodyChangeling"]
-            leading = -3
-    Anchors["BodyShiftedUp"]
+            font = GetFont("BodyChangeling", tags)
+            leading = GetLeading("BodyChangeling", tags, -3)
+    GetAnchor("BodyShiftedUp", tags)
     PIL_Helper.AddText(
         image = image,
         text = text,
@@ -456,24 +491,24 @@ def BodyText(image, text, color, flavor_text_size=0, font=None):
         leading_offset=leading
         )
 
-def FlavorText(image, text, color):
+def FlavorText(image, text, color, tags=None):
     return PIL_Helper.AddText(
         image = image,
         text = text,
-        font = fonts["Flavortext"],
+        font = GetFont("Flavor", tags),
         fill = color,
-        anchor = Anchors["Flavor"],
+        anchor = GetAnchor("Flavor", tags),
         valign = "bottom",
         halign = "center",
-        leading_offset=+1,
+        leading_offset=GetLeading("Flavor", tags, 1),
         max_width = textmaxwidth,
         )
 
-def AddExpansion(image, expansion):
+def AddExpansion(image, tags=None): 
     #print "Expansion: {}".format(expansion)
-    expansion_symbol = Expansions.get(expansion, None)
+    expansion_symbol = Expansions.get(tags['expansion'], None)
     if expansion_symbol:
-        image.paste(expansion_symbol, Anchors["Expansion"], expansion_symbol)
+        image.paste(expansion_symbol, GetAnchor("Expansion", tags), expansion_symbol)
 
 def CopyrightText(tags, image, color):
     text = tags.get('copyright')
@@ -486,9 +521,9 @@ def CopyrightText(tags, image, color):
     PIL_Helper.AddText(
         image = image,
         text = text,
-        font = fonts["Copyright"],
+        font = GetFont("Copyright", tags),
         fill = color,
-        anchor = Anchors["Copyright"],
+        anchor = GetAnchor("Copyright", tags),
         valign = "bottom",
         halign = "right",
         )
@@ -507,27 +542,19 @@ def MakeBlankCard():
     return image
 
 
-def GetColor(tags, param=""):
-    if 'colors' in tags and (param or "main") in tags['colors']:
-        return tuple(tags['colors'][param or "main"])
-    key = "{} {}".format(tags['type'], param) if param else tags['type']
-    return ColorDict[key]
-
-
-def MakeStandardCard(tags, add_symbols=True, image=None):
+def MakeStandardCard(tags, image=None):
     if not image:
         image = GetFrame(tags['type'], tags.get('frame'))
-        AddCardArt(image, tags['picture'], Anchors["PonyArt"])
-    TitleText(image, tags['title'], GetColor(tags))
+        AddCardArt(image, tags['picture'], GetAnchor("PonyArt", tags))
+    TitleText(image, tags['title'], GetColor(tags), tags)
     if tags.get('keywords'):
-        BarText(image, tags['keywords'], GetColor(tags, "bar text"))
-    text_size = FlavorText(image, tags['flavor'], GetColor(tags, "flavor"))
-    BodyText(image, tags['body'], GetColor(tags), text_size)
-    CopyrightText(tags, image, tags.get("copyright_color", ColorDict["Copyright"]))
+        BarText(image, tags['keywords'], GetColor(tags, "bar text"), tags)
+    text_size = FlavorText(image, tags['flavor'], GetColor(tags, "flavor"), tags)
+    BodyText(image, tags['body'], GetColor(tags), text_size, tags=tags)
+    CopyrightText(tags, image, tags.get("copyright_color", GetColor(tags, "Copyright")))
     if tags.get('expansion'):
-        AddExpansion(image, tags['expansion'])
-    if add_symbols:
-        AddSymbols(image, tags['symbols'])
+        AddExpansion(image, tags)
+    AddSymbols(image, tags)
     return image
 
 def MakeStartCard(tags):
@@ -538,17 +565,13 @@ def MakePonyCard(tags):
 
 def MakeShipCard(tags):
     image = GetFrame(tags['type'], tags.get('frame'))
-    AddCardArt(image, tags['picture'], Anchors["ShipArt"])
-    image = MakeStandardCard(tags, False, image)
-    AddSymbols(image, tags['symbols'], "Ship")
-    return image
+    AddCardArt(image, tags['picture'], GetAnchor("ShipArt", tags))
+    return MakeStandardCard(tags, image)
 
 def MakeGoalCard(tags):
     image = GetFrame(tags['type'], tags.get('frame'))
-    AddCardArt(image, tags['picture'], Anchors["GoalArt"])
-    image = MakeStandardCard(tags, False, image)
-    AddSymbols(image, tags['symbols'], card_type=tags['type'])
-    return image
+    AddCardArt(image, tags['picture'], GetAnchor("GoalArt", tags))
+    return MakeStandardCard(tags, image)
 
 def MakeSpecialCard(picture, custom_frame=None):
     return GetFrame(picture, custom_frame)

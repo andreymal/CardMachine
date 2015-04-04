@@ -61,17 +61,29 @@ def load_cards_file(path, save_tsssf_converted=True):
 
 
 def unpack_card_group(cards, group=None):
+    union_dicts = ('fonts', 'colors', 'anchors', 'anchors_offset', 'leading')
     if not group:
         group = {}
     unpacked_cards = []
     for card in cards:
         if 'group' in card and 'cards' in card:
             new_group = dict(group)
-            new_group.update(card['group'])
+            for key, value in card['group'].items():
+                if key not in union_dicts or key not in new_group:
+                    new_group[key] = value
+                    continue
+                new_group[key] = new_group[key].copy()
+                new_group[key].update(value)
+
             unpacked_cards.extend(unpack_card_group(card['cards'], new_group))
         else:
             new_card = dict(group)
-            new_card.update(card)
+            for key, value in card.items():
+                if key not in union_dicts or key not in new_card:
+                    new_card[key] = value
+                    continue
+                new_card[key] = new_card[key].copy()
+                new_card[key].update(value)
             unpacked_cards.append(new_card)
     return unpacked_cards
 
