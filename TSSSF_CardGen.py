@@ -495,7 +495,7 @@ def FlavorText(image, text, color, tags=None):
     return PIL_Helper.AddText(
         image = image,
         text = text,
-        font = GetFont("Flavor", tags),
+        font = GetFont("Flavortext", tags),
         fill = color,
         anchor = GetAnchor("Flavor", tags),
         valign = "bottom",
@@ -504,7 +504,7 @@ def FlavorText(image, text, color, tags=None):
         max_width = textmaxwidth,
         )
 
-def AddExpansion(image, tags=None): 
+def AddExpansion(image, tags):
     #print "Expansion: {}".format(expansion)
     expansion_symbol = Expansions.get(tags['expansion'], None)
     if expansion_symbol:
