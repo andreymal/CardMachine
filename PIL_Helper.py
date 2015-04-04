@@ -96,11 +96,17 @@ def AddText(image, text, font, fill=(0,0,0), anchor=(0,0),
     y = anchor[1] - int(len(lines) * leading * valign * 0.5 - leading_offset * 0.5)
     max_line_width = 0
 
+    sw = font.getsize("   ")[0]
     for line in lines:
         # If current line is blank, just change y and skip to next
         if line:
+            line = "   " + line + "   "  # trimming dirty fix :D
             line_width = font.getsize(line)[0]
             x_pos = start_x - int(line_width * halign * 0.5)
+            if halign == 0:
+                x_pos -= sw
+            elif halign == 2:
+                x_pos += sw
             # Keep track of the longest line width
             max_line_width = max(max_line_width, line_width)
             draw.text((x_pos, y), line, font=font, fill=fill)
@@ -142,19 +148,22 @@ def AddRotatedText(image, text, font, fill=(0,0,0), anchor=(0,0),
     # Set leading
     leading = font.font.ascent + font.font.descent + leading_offset
 
+    sw = font.getsize("   ")[0]
+
     # Begin laying down the lines, top to bottom
     y = start_y
     max_line_width = 0
     for line in lines:
         # If current line is blank, just change y and skip to next
         if not line == "":
+            line = "   " + line + "   "
             line_width, line_height = font.getsize(line)
             if halign == "left":
-                x_pos = start_x
+                x_pos = start_x - sw
             elif halign == "center":
                 x_pos = start_x-(line_width/2)
             elif halign == "right":
-                x_pos = start_x-line_width
+                x_pos = start_x-line_width+sw
             # Keep track of the longest line width
             max_line_width = max(max_line_width, line_width)
             draw.text((x_pos, y), line, font=font, fill=255)
