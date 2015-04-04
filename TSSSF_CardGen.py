@@ -5,7 +5,8 @@ TYPE, PICTURE, SYMBOLS, TITLE, KEYWORDS, BODY, FLAVOR, EXPANSION, CLIENT = range
 DIRECTORY = "TSSSF"
 ARTIST = "Pixel Prism"
 
-def convert_line(old_tags):
+def convert_line(line):
+    old_tags = line.replace(r'\n', '\n').split('`')
     taglist = ('type', 'picture', 'symbols', 'title', 'keywords', 'body', 'flavor', 'expansion', 'client')
     new_tags = {}
     for index, tag in enumerate(taglist):

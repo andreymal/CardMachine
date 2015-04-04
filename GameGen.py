@@ -32,13 +32,15 @@ def load_cards_file(path, save_tsssf_converted=True):
             data = {'module': first_line, 'cards': []}
 
             # convert to new format
+            convert_line = getattr(module, 'convert_line', None)
             for line in fp:
                 line = line.decode('utf-8', 'replace').strip()
                 if not line or line[0] in ('#', ';', '/'):
                     continue
-                line = line.replace(r'\r', '').replace(r'\n', '\n')
-                data['cards'].append(module.convert_line(line.split('`')))
-                # data['cards'].append(line.split('`'))
+                line = line.replace(r'\r', '')
+                if convert_line:
+                    line = convert_line(line)
+                data['cards'].append(line)
 
     data['game'] = game
     data['card_set'] = card_set
@@ -49,7 +51,10 @@ def load_cards_file(path, save_tsssf_converted=True):
 
     if not path.endswith('.json') and save_tsssf_converted and data['module'] == 'TSSSF_CardGen':
         print 'Converting to new format!'
-        with open(os.path.splitext(path)[0] + '.json', 'wb') as fp:
+        jsonpath = os.path.splitext(path)[0] + '.json'
+        if os.path.exists(jsonpath):
+            raise Exception("json file exists, cannot convert")
+        with open(jsonpath, 'wb') as fp:
             fp.write(fancy_json_cards(data).encode('utf-8'))
 
     return module, data
