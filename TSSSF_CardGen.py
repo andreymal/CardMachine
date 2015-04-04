@@ -56,16 +56,28 @@ TextHeightThresholds = [363, 378, 600]
 TitleWidthThresholds = [50] #This is in #characters, fix later plox
 BarTextThreshold = [500]
 
+fontsizes = {
+    "Title": 55,
+    "TitleSmall": 45,
+    "Body": 35,
+    "BodySmall": 35,
+    "BodyChangeling": 31,
+    "Bar": 38,
+    "BarSmall": 35,
+    "Flavortext": 28,
+    "Copyright": 18
+}
+
 fonts = {
-    "Title":PIL_Helper.BuildFont(ResourcePath+"TSSSFBartholomew-Bold.otf", 55),
-    "TitleSmall":PIL_Helper.BuildFont(ResourcePath+"TSSSFBartholomew-Bold.otf", 45),
-    "Body":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 35),
-    "BodySmall":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 35),
-    "BodyChangeling":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 31),
-    "Bar":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 38),
-    "BarSmall":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 35),
-    "Flavortext":PIL_Helper.BuildFont(ResourcePath+"KlinicSlabBookIt.otf", 28),
-    "Copyright":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", 18)
+    "Title":PIL_Helper.BuildFont(ResourcePath+"TSSSFBartholomew-Bold.otf", fontsizes["Title"]),
+    "TitleSmall":PIL_Helper.BuildFont(ResourcePath+"TSSSFBartholomew-Bold.otf", fontsizes["TitleSmall"]),
+    "Body":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", fontsizes["Body"]),
+    "BodySmall":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", fontsizes["BodySmall"]),
+    "BodyChangeling":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", fontsizes["BodyChangeling"]),
+    "Bar":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", fontsizes["Bar"]),
+    "BarSmall":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", fontsizes["BarSmall"]),
+    "Flavortext":PIL_Helper.BuildFont(ResourcePath+"KlinicSlabBookIt.otf", fontsizes["Flavortext"]),
+    "Copyright":PIL_Helper.BuildFont(ResourcePath+"TSSSFCabin-Medium.ttf", fontsizes["Copyright"])
 }
 
 custom_fonts = {}
@@ -246,7 +258,13 @@ def GetCustomImage(custom_cache, custom_item):
 def GetFont(typ, tags=None):
     if not tags or 'fonts' not in tags or typ not in tags['fonts']:
         return fonts[typ]
-    custom_item = tuple(tags['fonts'][typ][:3])
+    custom_item = tags['fonts'][typ]
+    if isinstance(custom_item, unicode):
+        custom_item = ('resource', custom_item)
+    else:
+        custom_item = tuple(custom_item[:3])
+    if len(custom_item) < 3:
+        custom_item = (custom_item[0], custom_item[1], fontsizes[typ])
     if not custom_item in custom_fonts:
         path = ParseCustomPath(custom_item)
         custom_fonts[custom_item] = PIL_Helper.BuildFont(path, custom_item[2])
@@ -555,6 +573,9 @@ def MakeStandardCard(tags, image=None):
     if tags.get('expansion'):
         AddExpansion(image, tags)
     AddSymbols(image, tags)
+    if tags.get('overlay'):
+        overlay_image = PIL_Helper.LoadImage(CardPath + "/" + tags['overlay'])
+        image.paste(overlay_image, (0, 0), overlay_image)
     return image
 
 def MakeStartCard(tags):
