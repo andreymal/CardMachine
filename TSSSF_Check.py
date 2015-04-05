@@ -136,7 +136,8 @@ def check_card(card, check_required=True, ignore_required=(), warnings=False, pa
         if not param in card:
             continue
         value = card.get(param)
-        errors += check_path(value, param, "Card %s" % index, is_font=False, warnings=warnings, paths=paths)
+        if not isinstance(value, unicode) or not value or '.' in value:  # do not check identifier
+            errors += check_path(value, param, "Card %s" % index, is_font=False, warnings=warnings, paths=paths)
 
     # check fonts
     if 'fonts' in card:
@@ -311,30 +312,25 @@ def check_defaults(default, warnings=False, paths=None):
     return check_card(default, check_required=False, warnings=warnings, paths=paths, index='"default"')
 
 
-def check_symbols(symbols, warnings=False, paths=None):
-    if symbols is None:
-        return 0
-    if not isinstance(symbols, dict):
-        error("'symbols' is not dict")
-        return 1
-
+def check_resources(resources, warnings=False, paths=None):
     errors = 0
-    for symbol, value in symbols.items():
-        if not isinstance(symbol, unicode):
-            error("Symbol name %r is not string" % symbol)
-            errors += 1
-        elif not symbol:
-            error("Empty symbol")
-            errors += 1
+    for who in ('symbols', 'frames', 'backs'):
+        if who in resources:
+            if not isinstance(resources[who], dict):
+                error("%r is not dict" % who)
+                errors += 1
 
-        if not isinstance(value, unicode):
-            error("Symbol value %r is not string" % symbol)
-            errors += 1
-        elif not value:
-            error("Symbol value %r is empty" % symbol)
-            errors += 1
-        elif warnings and paths and not os.path.isfile(os.path.join(paths['resource'], value)):
-            warning("Picture for symbol %r not found (%s)" % (symbol, value))
+            else:
+                for key, value in resources[who].items():
+                    if not isinstance(key, unicode):
+                        error("%s name %r is not string" % (who, key))
+                        errors += 1
+                    elif not key:
+                        error("Empty %s" % who)
+                        errors += 1
+
+                    if warnings and paths:
+                        errors += check_path(value, key, who, is_font=False, warnings=warnings, paths=paths)
 
     return errors
 
@@ -427,7 +423,8 @@ def check_file(path, data, warnings=False):
     errors = 0
     errors += check_cards(data.get('cards'), ignore_required=data['default'].keys() if isinstance(data.get('default'), dict) else (), warnings=warnings, paths=paths)
     errors += check_defaults(data.get('default'), warnings=warnings, paths=paths)
-    errors += check_symbols(data.get('symbols'), warnings=warnings, paths=paths)
+    if 'resources' in data:
+        errors += check_resources(data['resources'], warnings=warnings, paths=paths)
     errors += check_pdf(data.get('pdf'), warnings=warnings, paths=paths)
     return errors
 

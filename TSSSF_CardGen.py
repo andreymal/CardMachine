@@ -238,6 +238,14 @@ custom_backs = {}
 CopyrightString = u"{}; TSSSF by Horrible People Games. Art by {}."
 
 def ParseCustomPath(custom_item):
+    """
+    "foo.png" => "TSSSF/resources/foo.png"
+    ["resource", "foo.png"] => "TSSSF/resources/foo.png"
+    ["card_art", "foo.png"] => "TSSSF/Card Art/foo.png"
+    ["local", "foo.png"] => "TSSSF/card_set_folder/foo.png"
+    """
+    if isinstance(custom_item, basestring):
+        return os.path.join(ResourcePath, custom_item)
     if custom_item[0] == "card_art":
         path = os.path.join(CardPath, custom_item[1])
     elif custom_item[0] == "resource":
@@ -294,9 +302,18 @@ def GetColor(tags, param=""):
     key = "{} {}".format(tags['type'], param) if param else tags['type']
     return ColorDict.get(key) or ColorDict[param]
 
-def LoadSymbols(data):
-    for sym, path in data.items():
-        Symbols[sym.lower()] = PIL_Helper.LoadImage(os.path.join(ResourcePath, path))
+def LoadResources(data):
+    if 'symbols' in data:
+        for sym, path in data['symbols'].items():
+            Symbols[sym.lower()] = PIL_Helper.LoadImage(ParseCustomPath(path))
+
+    if 'frames' in data:
+        for frame, path in data['frames'].items():
+            Frames[frame] = PIL_Helper.LoadImage(ParseCustomPath(path))
+
+    if 'backs' in data:
+        for back, path in data['backs'].items():
+            backs[back] = PIL_Helper.LoadImage(ParseCustomPath(path))
 
 def FixFileName(tagin, extension):
     FileName = tagin.replace("\n", "")
@@ -370,6 +387,8 @@ def BuildCard(tags):
 def BuildBack(tags):
     #print("Back type: " + tags['type'])
     if tags.get('back'):
+        if tags['back'] in backs:
+            return backs[tags['back']]
         return GetCustomImage(custom_backs, tags['back'])
     return backs.get(tags['type'], backs['BLANK'])
 
@@ -394,8 +413,10 @@ def PickCardFunc(tags):
         raise Exception("No card of type {0}".format(tags['type']))
 
 def GetFrame(card_type, custom_frame=None):
+    if isinstance(custom_frame, unicode) and custom_frame in Frames:
+        return Frames[custom_frame].copy()
     if card_type not in Frames and not custom_frame:
-        custom_frame = ("card_art", card_type + ".png")
+        custom_frame = ("resource", card_type + ".png")
     if custom_frame:
         return GetCustomImage(CustomFrames, custom_frame).copy()
     return Frames[card_type].copy()

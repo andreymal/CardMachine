@@ -144,8 +144,9 @@ def build_cards(module, data):
     module.CardSet = data['card_set']
     card_set_path = os.path.join(data['game'], data['card_set'])
 
-    if 'symbols' in data and getattr(module, 'LoadSymbols', None):
-        module.LoadSymbols(data['symbols'])
+    if 'resources' in data and getattr(module, 'LoadResources', None):
+        module.LoadResources(data['resources'])
+
 
     # Create workspace for card images
     workspace_path = CleanDirectory(path=card_set_path, mkdir="workspace", rmstring="*.*")
