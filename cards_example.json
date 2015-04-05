@@ -2,8 +2,11 @@
  "module": "TSSSF_CardGen",
  "comment": "Remove '_1' from disabled keys and use it!",
 
- "symbols_1": {
-  "foePE": "Symbol-foePE.png"
+ "resources_1": {
+  "symbols": {
+   "foePE": "Symbol-foePE.png"
+  },
+  "frames": {"Pony": "BLEED-Blank-Pony-custom.png", "MyCoolFrame": ["local", "BLEED-Blank-MyCoolFrame.png"]}
  },
 
  "default_1": {
