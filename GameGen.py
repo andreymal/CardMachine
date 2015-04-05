@@ -162,7 +162,6 @@ def build_cards(module, data):
     module.CardSetPath = output_folder
 
     pdf = data.get('pdf', {})
-    cards_per_page = pdf.get('cards_per_page', module.TOTAL_CARDS)
 
     page_params = {'extension': pdf.get('pages_extension', 'png')}
     if 'dpi' in pdf:
@@ -178,6 +177,8 @@ def build_cards(module, data):
     else:
         page_params['grid_width'] = module.PAGE_WIDTH
         page_params['grid_height'] = module.PAGE_HEIGHT
+
+    cards_per_page = page_params['grid_width'] * page_params['grid_height']
 
     # Make pages
     card_list = []

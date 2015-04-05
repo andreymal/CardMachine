@@ -10,12 +10,12 @@
   "extension": "bmp",
 
   "anchors_offset": {"Bar": [0, -1]},
-  "colors": {"Main": [255, 0, 0]},
+  "colors": {"main": [255, 0, 0]},
   "leading": {"Flavor": -10},
 
   "fonts": {
    "Title": "TSSSFBartholomew-Bold.otf",
-   "Copyright": "TSSSFCabin-Medium.ttf"
+   "Copyright": ["resource", "TSSSFCabin-Medium.ttf"]
    }
  },
 
