@@ -4,9 +4,11 @@
 Master Game Gen
 1.0b
 '''
-import os, json
-from OS_Helper import CleanDirectory, BuildPage, BuildBack
+import os
 import sys
+import json
+
+from OS_Helper import CleanDirectory, BuildPage, BuildBack
 
 #TSSSF Migration TODO:
 #automagickally create vassal module :D
@@ -187,7 +189,7 @@ def build_cards(module, data):
     count = len(data['cards'])
     for index, card in enumerate(data['cards'], 1):
         label = card.get('title') or card.get('picture') or card.get('type')
-        print '[{}/{}] {}'.format(index, count, label.replace('\n', ' ').encode('utf-8', 'replace'))
+        print '[{}/{}] {}'.format(index, count, label.replace('\n', ' ').encode(sys.stdout.encoding, 'replace'))
         card_list.append(module.BuildCard(card))
         back_list.append(module.BuildBack(card))
         # If the card_list is big enough to make a page
