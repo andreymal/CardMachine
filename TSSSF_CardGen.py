@@ -1,4 +1,6 @@
-import os, glob, shutil, traceback, random
+import os
+import random
+import traceback
 import PIL_Helper
 
 TYPE, PICTURE, SYMBOLS, TITLE, KEYWORDS, BODY, FLAVOR, EXPANSION, CLIENT = range(9)
@@ -258,7 +260,7 @@ def ParseCustomPath(custom_item):
 
 def GetCustomImage(custom_cache, custom_item):
     if isinstance(custom_item, unicode):
-        cutsom_item = ('resource', custom_item)
+        custom_item = ('resource', custom_item)
     else:
         custom_item = tuple(custom_item[:2])
     if custom_item not in custom_cache:
@@ -378,7 +380,7 @@ def BuildCard(tags):
             SaveCard(os.path.join(VassalPath, filename), im_vassal)
         #MakeVassalCard(im_cropped)
     except Exception as e:
-        print "Warning, Bad Card: {0}".format(tags)
+        print("Warning, Bad Card: {0}".format(tags))
         traceback.print_exc()
         im_crop = MakeBlankCard().crop(croprect)
     #im.show()  # TEST
@@ -638,4 +640,4 @@ def CompileVassalModule():
     pass
 
 if __name__ == "__main__":
-    print "Not a main module. Run GameGen.py"
+    print("Not a main module. Run GameGen.py")
